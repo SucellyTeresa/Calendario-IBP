@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendario IBP por Áreas</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f4f0; --bg3: #eceae3;
+    --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --radius-md: 8px; --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --gap: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+      --text: #e8e6de; --text2: #a09e96; --text3: #6b6a63;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+    }
+  }
+  body { font-family: var(--font); background: var(--bg2); color: var(--text); padding: 24px 16px; min-height: 100vh; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 24px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 7px 18px; border: 0.5px solid var(--border2); border-radius: var(--radius-md); background: transparent; cursor: pointer; font-size: 13px; color: var(--text2); transition: all .15s; font-family: var(--font); }
+  .tab.active { background: var(--bg); color: var(--text); border-color: var(--border2); font-weight: 500; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* TABLE */
+  .tbl-wrap { overflow-x: auto; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { font-weight: 500; text-align: left; padding: 10px 12px; border-bottom: 0.5px solid var(--border2); color: var(--text2); white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg2); }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .b-neg  { background: #EEEDFE; color: #3C3489; }
+  .b-prep { background: #FAEEDA; color: #412402; }
+  .b-ejec { background: #EAF3DE; color: #173404; }
+  .b-seg  { background: #E6F1FB; color: #042C53; }
+  .b-cier { background: #FBEAF0; color: #4B1528; }
+
+  /* CALENDAR */
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text2); }
+  .leg-sq { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
+  .filter-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 16px; }
+  .f-btn { padding: 4px 13px; border: 0.5px solid var(--border2); border-radius: 20px; background: transparent; font-size: 12px; cursor: pointer; color: var(--text2); transition: all .15s; font-family: var(--font); }
+  .f-btn.on { font-weight: 500; color: #fff; border-color: transparent; }
+  .cal-area { margin-bottom: 18px; }
+  .area-title { font-size: 13px; font-weight: 500; margin-bottom: 7px; display: flex; align-items: center; gap: 8px; }
+  .area-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .months-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; }
+  .mcell { border-radius: 5px; padding: 5px 4px; min-height: 58px; border: 0.5px solid var(--border); background: var(--bg); }
+  .m-label { font-size: 9px; color: var(--text3); margin-bottom: 3px; text-align: center; font-weight: 500; }
+  .m-tag { font-size: 9px; font-weight: 600; padding: 2px 4px; border-radius: 3px; line-height: 1.4; text-align: center; }
+  .m-neg  { background: #CECBF6; color: #26215C; }
+  .m-prep { background: #FAC775; color: #412402; }
+  .m-ejec { background: #C0DD97; color: #173404; }
+  .m-seg  { background: #B5D4F4; color: #042C53; }
+  .m-cier { background: #F4C0D1; color: #4B1528; }
+
+  /* ROLES */
+  .roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--gap); }
+  .role-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
+  .role-head { font-size: 13px; font-weight: 500; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 9px; }
+  .role-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .role-desc { font-size: 11px; color: var(--text2); font-weight: 400; margin-top: 2px; }
+  .role-list { list-style: none; }
+  .role-list li { font-size: 12px; color: var(--text2); padding: 4px 0; border-bottom: 0.5px solid var(--border); display: flex; align-items: flex-start; gap: 6px; line-height: 1.5; }
+  .role-list li:last-child { border-bottom: none; }
+  .role-list li::before { content: '—'; color: var(--text3); flex-shrink: 0; }
+
+  /* RULES */
+  .rules-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+  @media (max-width: 600px) { .rules-col { grid-template-columns: 1fr; } }
+  .rule-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
+  .rule-title { font-size: 13px; font-weight: 500; margin-bottom: 10px; color: var(--text); }
+  .rule-steps { list-style: none; counter-reset: rule; }
+  .rule-steps li { counter-increment: rule; font-size: 12px; color: var(--text2); padding: 4px 0 4px 22px; position: relative; line-height: 1.6; border-bottom: 0.5px solid var(--border); }
+  .rule-steps li:last-child { border-bottom: none; }
+  .rule-steps li::before { content: counter(rule); position: absolute; left: 0; top: 5px; font-size: 10px; font-weight: 600; color: var(--text3); background: var(--bg2); width: 15px; height: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 15px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Calendario IBP por Áreas</h1>
+  <p class="subtitle">Negociaciones y seguimiento de compras — Integrated Business Planning</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('matrix',this)">Matriz resumen</button>
+    <button class="tab" onclick="showTab('calendar',this)">Calendario anual</button>
+    <button class="tab" onclick="showTab('roles',this)">Roles clave</button>
+    <button class="tab" onclick="showTab('rules',this)">Reglas IBP</button>
+  </div>
+
+  <div id="matrix" class="section active">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Área</th><th>Evento principal</th><th>Mes ejecución</th>
+            <th>Mes negociación</th><th>Lead time</th><th>Tipo de insumo</th><th>Fase crítica</th>
+          </tr>
+        </thead>
+        <tbody id="matrix-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="calendar" class="section">
+    <div class="legend">
+      <div class="leg-item"><div class="leg-sq" style="background:#CECBF6"></div>Negociación</div>
+      <div class="leg-item"><div class="leg-sq" style="background:#FAC775"></div>Preparación</div>
+      <div class="leg-item"><div class="leg-sq" style="background:#C0DD97"></div>Ejecución</div>
+      <div class="leg-item"><div class="leg-sq" style="background:#B5D4F4"></div>Seguimiento</div>
+      <div class="leg-item"><div class="leg-sq" style="background:#F4C0D1"></div>Cierre</div>
+    </div>
+    <div class="filter-row" id="filter-row"></div>
+    <div id="cal-container"></div>
+  </div>
+
+  <div id="roles" class="section">
+    <div class="roles-grid" id="roles-container"></div>
+  </div>
+
+  <div id="rules" class="section">
+    <div class="rules-col" id="rules-container"></div>
+  </div>
+</div>
+
+<script>
+const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+const AREAS = [
+  { name:'Fábrica', color:'#534AB7', evento:'Producción continua / zafra', ejecucion:'Jul–Dic', negociacion:'Mar–Abr', leadTime:'3 meses', insumo:'Materias primas, empaques', fases:['prep','prep','neg','neg','prep','ejec','ejec','ejec','ejec','seg','seg','cier'] },
+  { name:'Agrícola', color:'#0F6E56', evento:'Aplicación / cosecha (noviembre)', ejecucion:'Nov–Ene', negociacion:'Ago', leadTime:'3 meses', insumo:'Agroquímicos, fertilizantes', fases:['seg','cier','prep','prep','prep','prep','prep','neg','neg','prep','ejec','ejec'] },
+  { name:'Taller', color:'#BA7517', evento:'Reparación / mantenimiento (mayo)', ejecucion:'May–Jun', negociacion:'Feb', leadTime:'3 meses', insumo:'Repuestos, lubricantes, herramientas', fases:['prep','neg','prep','prep','ejec','ejec','seg','seg','cier','prep','prep','prep'] },
+  { name:'Laboratorio', color:'#993C1D', evento:'Análisis de calidad (continuo)', ejecucion:'Todo el año', negociacion:'Ene', leadTime:'2 meses', insumo:'Reactivos, equipos de medición', fases:['neg','prep','ejec','ejec','ejec','seg','seg','cier','neg','prep','ejec','ejec'] },
+  { name:'Soporte', color:'#185FA5', evento:'Renovación contratos (octubre)', ejecucion:'Oct–Nov', negociacion:'Jul', leadTime:'3 meses', insumo:'Servicios, TI, limpieza, seguridad', fases:['prep','prep','prep','prep','prep','prep','neg','prep','prep','ejec','ejec','seg'] },
+  { name:'Proyectos', color:'#993556', evento:'Inicio proyectos (abril)', ejecucion:'Abr–Sep', negociacion:'Ene', leadTime:'3 meses', insumo:'Equipos, ingeniería, construcción', fases:['neg','prep','prep','ejec','ejec','ejec','ejec','ejec','seg','cier','prep','prep'] }
+];
+
+const PHASE_LABEL = { neg:'Negoc.', prep:'Prep.', ejec:'Ejec.', seg:'Seg.', cier:'Cierre' };
+const PHASE_CSS   = { neg:'m-neg', prep:'m-prep', ejec:'m-ejec', seg:'m-seg', cier:'m-cier' };
+const BADGE_CSS   = { neg:'b-neg', prep:'b-prep', ejec:'b-ejec', seg:'b-seg', cier:'b-cier' };
+const FASE_LONG   = { neg:'Negociación', prep:'Preparación', ejec:'Ejecución', seg:'Seguimiento', cier:'Cierre' };
+
+// Matrix
+const tbody = document.getElementById('matrix-body');
+AREAS.forEach(a => {
+  const counts = {};
+  a.fases.forEach(f => counts[f] = (counts[f]||0)+1);
+  const critical = Object.entries(counts).sort((x,y)=>y[1]-x[1])[0][0];
+  tbody.innerHTML += `<tr>
+    <td><span style="display:flex;align-items:center;gap:7px;">
+      <span style="width:9px;height:9px;border-radius:50%;background:${a.color};flex-shrink:0;display:inline-block"></span>
+      <strong style="font-weight:500">${a.name}</strong></span></td>
+    <td style="color:var(--text2)">${a.evento}</td>
+    <td>${a.ejecucion}</td>
+    <td><strong style="font-weight:500">${a.negociacion}</strong></td>
+    <td style="white-space:nowrap">${a.leadTime}</td>
+    <td style="color:var(--text2);font-size:12px">${a.insumo}</td>
+    <td><span class="badge ${BADGE_CSS[critical]}">${FASE_LONG[critical]}</span></td>
+  </tr>`;
+});
+
+// Calendar filters
+let activeAreas = new Set(AREAS.map(a=>a.name));
+const filterRow = document.getElementById('filter-row');
+AREAS.forEach(a => {
+  const btn = document.createElement('button');
+  btn.className = 'f-btn on';
+  btn.style.background = a.color;
+  btn.textContent = a.name;
+  btn.onclick = () => {
+    if(activeAreas.has(a.name)){ activeAreas.delete(a.name); btn.style.background=''; btn.style.color=''; btn.classList.remove('on'); }
+    else { activeAreas.add(a.name); btn.style.background=a.color; btn.style.color='#fff'; btn.classList.add('on'); }
+    renderCal();
+  };
+  filterRow.appendChild(btn);
+});
+
+function renderCal() {
+  const c = document.getElementById('cal-container');
+  c.innerHTML = '';
+  AREAS.forEach(a => {
+    if(!activeAreas.has(a.name)) return;
+    const div = document.createElement('div');
+    div.className = 'cal-area';
+    div.innerHTML = `<div class="area-title">
+      <span class="area-dot" style="background:${a.color}"></span>
+      <span>${a.name}</span>
+      <span style="font-size:11px;color:var(--text3);font-weight:400">${a.evento}</span>
+    </div>
+    <div class="months-grid">${a.fases.map((f,i)=>`
+      <div class="mcell">
+        <div class="m-label">${MONTHS[i]}</div>
+        <div class="m-tag ${PHASE_CSS[f]}">${PHASE_LABEL[f]}</div>
+      </div>`).join('')}
+    </div>`;
+    c.appendChild(div);
+  });
+}
+renderCal();
+
+// Roles
+const ROLES_DATA = [
+  { tipo:'Planeación', color:'#FAEEDA', textColor:'#412402',
+    desc:'Definir necesidades anuales, calendarios y presupuesto',
+    roles:['Gerente de área (dueño del evento)','Planeación y control (IBP)','Finanzas (presupuesto)','Compras (estrategia)'] },
+  { tipo:'Negociación', color:'#EEEDFE', textColor:'#26215C',
+    desc:'Cierre de condiciones comerciales con proveedores',
+    roles:['Compras / Procurement','Gerente del área solicitante','Legal (contratos)','Dirección (negociaciones clave)'] },
+  { tipo:'Seguimiento', color:'#E6F1FB', textColor:'#042C53',
+    desc:'Verificar cumplimiento, entregas y KPIs',
+    roles:['Compras (ejecutor)','Área operativa (receptor)','Almacén / Logística','Planeación IBP (control)'] },
+  { tipo:'Cierre', color:'#FBEAF0', textColor:'#4B1528',
+    desc:'Evaluación de proveedores, lecciones aprendidas',
+    roles:['Gerente de área','Compras','Finanzas (liquidación)','Calidad (evaluación proveedor)'] }
+];
+const rolesContainer = document.getElementById('roles-container');
+ROLES_DATA.forEach(r => {
+  const card = document.createElement('div');
+  card.className = 'role-card';
+  card.innerHTML = `
+    <div class="role-head">
+      <div class="role-icon" style="background:${r.color};color:${r.textColor}">${r.tipo[0]}</div>
+      <div><div>${r.tipo}</div><div class="role-desc">${r.desc}</div></div>
+    </div>
+    <ul class="role-list">${r.roles.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  rolesContainer.appendChild(card);
+});
+
+// Rules
+const RULES_DATA = [
+  { title:'Cómo calcular la anticipación (lead time)',
+    steps:['Identificar el mes de ejecución del evento crítico del área.','Restar el lead time de compra (mínimo 3 meses; reactivos: 2 meses).','El resultado es el mes de inicio de negociación.','Agregar 1 mes previo de preparación y revisión presupuestal.','Validar dependencias: si área A depende de B, la negociación de A no puede iniciar antes que B.'] },
+  { title:'Cómo definir el tipo de reunión por mes',
+    steps:['Mes N-4 a N-3: Planeación — revisión de necesidades y presupuesto.','Mes N-3 a N-2: Negociación — RFQ, evaluación de propuestas, cierre comercial.','Mes N-1: Preparación — órdenes de compra, confirmación de entregas.','Mes N (ejecución): Seguimiento operativo semanal.','Mes N+1 a N+2: Cierre — liquidación, evaluación de proveedor, lecciones.'] },
+  { title:'Cómo adaptar el modelo a una nueva área',
+    steps:['Definir el evento crítico del área (zafra, reparación, proyecto, etc.).','Establecer el mes de ejecución y duración del evento.','Clasificar insumos: estratégicos (lead time largo) vs. tácticos (lead time corto).','Calcular retroceso según lead time por categoría de insumo.','Asignar participantes según el nivel de gasto e impacto operativo.'] },
+  { title:'Reglas generales del modelo IBP',
+    steps:['Ninguna negociación inicia sin presupuesto aprobado.','Toda negociación >3 meses de duración requiere contrato formal.','Los seguimientos mensuales son obligatorios durante ejecución.','La evaluación de proveedores cierra cada ciclo antes de re-negociar.','El calendario se revisa en enero de cada año con todas las áreas.'] }
+];
+const rulesContainer = document.getElementById('rules-container');
+RULES_DATA.forEach(r => {
+  const card = document.createElement('div');
+  card.className = 'rule-card';
+  card.innerHTML = `<div class="rule-title">${r.title}</div>
+    <ol class="rule-steps">${r.steps.map(s=>`<li>${s}</li>`).join('')}</ol>`;
+  rulesContainer.appendChild(card);
+});
+
+function showTab(id, btn) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
